@@ -141,7 +141,6 @@ def build():
     if IS_MAC:
         cmd.extend([
             "--osx-bundle-identifier", "com.speakink.app",
-            "--target-architecture", "universal2",
         ])
 
     # Entry point
