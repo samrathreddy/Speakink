@@ -6,7 +6,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue" alt="Platform">
   <img src="https://img.shields.io/badge/python-3.12-green" alt="Python">
-  <img src="https://img.shields.io/badge/license-MIT-yellow" alt="License">
+  <img src="https://img.shields.io/badge/license-Source%20Available-orange" alt="License">
   <img src="https://img.shields.io/badge/Free-NVIDIA%20Parakeet-brightgreen" alt="Free with NVIDIA">
   <img src="https://img.shields.io/badge/BYOK-AssemblyAI%20%7C%20ElevenLabs%20%7C%20Cartesia-purple" alt="STT Providers">
 </p>
@@ -32,7 +32,7 @@ Local Whisper models are also available (beta) for fully offline use.
 | **Pricing** | Free + BYOK (pay provider directly) | $15/month ($12/mo annual) |
 | **STT Providers** | AssemblyAI, Cartesia, ElevenLabs, NVIDIA Parakeet, Whisper (local) | Proprietary |
 | **Choose your provider** | Yes — swap anytime | No |
-| **Open source** | Yes (MIT) | No |
+| **Open source** | Yes (source-available) | No |
 | **Real-time streaming** | Yes (WebSocket) | Yes |
 | **AI text correction** | Yes (Gemini / Ollama) | Yes (built-in) |
 | **Works in any app** | Yes | Yes |
@@ -357,4 +357,8 @@ Areas that need help:
 
 ## License
 
-MIT
+Source-available. Free for personal use. Contributions welcome.
+
+You may use, modify, and share this software for personal and non-commercial purposes. You may not resell, relicense, or distribute this software (or derivatives) as a paid product or service without explicit permission from the author.
+
+See [LICENSE](LICENSE) for full terms.
