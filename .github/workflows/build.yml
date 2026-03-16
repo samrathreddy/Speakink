@@ -1,0 +1,85 @@
+name: Build SpeakInk
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          venv/bin/pip install -r requirements.txt
+          venv/bin/pip install pyinstaller
+
+      - name: Build .app
+        run: venv/bin/python build.py
+
+      - name: Create DMG
+        run: |
+          cd dist
+          mkdir dmg_contents
+          cp -R SpeakInk.app dmg_contents/
+          ln -s /Applications dmg_contents/Applications
+          hdiutil create -volname "SpeakInk" -srcfolder dmg_contents -ov -format UDZO SpeakInk-macOS.dmg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpeakInk-macOS
+          path: dist/SpeakInk-macOS.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          venv/Scripts/pip install -r requirements.txt
+          venv/Scripts/pip install pyinstaller
+
+      - name: Build .exe
+        run: venv/Scripts/python build.py
+
+      - name: Create zip
+        run: Compress-Archive -Path dist/SpeakInk/* -DestinationPath dist/SpeakInk-Windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpeakInk-Windows
+          path: dist/SpeakInk-Windows.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/SpeakInk-macOS/SpeakInk-macOS.dmg
+            artifacts/SpeakInk-Windows/SpeakInk-Windows.zip
+          generate_release_notes: true
