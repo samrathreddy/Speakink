@@ -13,8 +13,21 @@ import platform
 import shutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# PROJECT_ROOT is the parent of SCRIPT_DIR so that `speakink` is a package on the path
+# PROJECT_ROOT is the parent of SCRIPT_DIR so that `import speakink` works.
+# On CI the checkout dir may be "Speakink" (capital S) which breaks the import.
+# We ensure a lowercase `speakink` directory exists on the Python path.
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+_dir_name = os.path.basename(SCRIPT_DIR)
+if _dir_name != "speakink":
+    _lowercase_link = os.path.join(PROJECT_ROOT, "speakink")
+    if not os.path.exists(_lowercase_link):
+        if IS_WINDOWS:
+            # Windows: use junction (no admin needed, works for dirs)
+            subprocess.run(["cmd", "/c", "mklink", "/J", _lowercase_link, SCRIPT_DIR],
+                           capture_output=True)
+        else:
+            os.symlink(SCRIPT_DIR, _lowercase_link)
+        print(f"  Created link: {_lowercase_link} -> {SCRIPT_DIR}")
 IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 

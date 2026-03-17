@@ -13,21 +13,26 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: speakink
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        working-directory: speakink
         run: |
           python -m venv venv
           venv/bin/pip install -r requirements.txt
           venv/bin/pip install pyinstaller
 
       - name: Build .app
+        working-directory: speakink
         run: venv/bin/python build.py
 
       - name: Create DMG
+        working-directory: speakink
         run: |
           cd dist
           mkdir dmg_contents
@@ -39,34 +44,39 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SpeakInk-macOS
-          path: dist/SpeakInk-macOS.dmg
+          path: speakink/dist/SpeakInk-macOS.dmg
 
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: speakink
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        working-directory: speakink
         run: |
           python -m venv venv
           venv/Scripts/pip install -r requirements.txt
           venv/Scripts/pip install pyinstaller
 
       - name: Build .exe
+        working-directory: speakink
         run: venv/Scripts/python build.py
 
       - name: Create zip
+        working-directory: speakink
         run: Compress-Archive -Path dist/SpeakInk/* -DestinationPath dist/SpeakInk-Windows.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SpeakInk-Windows
-          path: dist/SpeakInk-Windows.zip
+          path: speakink/dist/SpeakInk-Windows.zip
 
   release:
     needs: [build-macos, build-windows]
