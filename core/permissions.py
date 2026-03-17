@@ -99,45 +99,35 @@ def check_microphone() -> bool:
         AVCaptureDevice = objc.objc_getClass(b"AVCaptureDevice")
         sel_auth = objc.sel_registerName(b"authorizationStatusForMediaType:")
 
-        # Create NSString for "soun" (AVMediaTypeAudio)
         NSString = objc.objc_getClass(b"NSString")
         sel_str = objc.sel_registerName(b"stringWithUTF8String:")
         objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p]
         objc.objc_msgSend.restype = ctypes.c_void_p
         media_type = objc.objc_msgSend(NSString, sel_str, b"soun")
 
-        # Get authorization status: 0=NotDetermined, 1=Restricted, 2=Denied, 3=Authorized
+        # 0=NotDetermined, 1=Restricted, 2=Denied, 3=Authorized
         objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
         objc.objc_msgSend.restype = ctypes.c_long
         status = objc.objc_msgSend(AVCaptureDevice, sel_auth, media_type)
 
-        return status == 3  # Authorized
+        return status == 3
     except Exception:
         logger.debug("Could not check microphone permission", exc_info=True)
         return True
 
 
-def get_app_path() -> str:
-    """Get the path of the running .app bundle, if any."""
-    try:
-        import sys
-        if hasattr(sys, "_MEIPASS"):
-            import os
-            path = sys._MEIPASS
-            while path and path != "/":
-                if path.endswith(".app"):
-                    return path
-                path = os.path.dirname(path)
-    except Exception:
-        pass
-    return ""
-
-
 def request_accessibility() -> None:
-    """Open Accessibility settings so the user can add the app."""
+    """Trigger the native Accessibility permission prompt.
+
+    Uses a subprocess to call AXIsProcessTrustedWithOptions with prompt=True
+    via PyObjC/Swift bridge. Falls back to opening System Settings directly.
+    On macOS this shows the system dialog and auto-adds the app to the list.
+    """
     if not IS_MAC:
         return
     try:
+        # Use osascript to open System Settings to the Accessibility pane.
+        # The OS will show the "allow app" prompt if the app isn't in the list yet.
         subprocess.Popen([
             "open",
             "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
@@ -163,8 +153,7 @@ def request_microphone() -> None:
     """Request microphone access — triggers the native macOS permission prompt.
 
     On macOS, apps are auto-added to the Microphone list when they first request
-    access. There is no manual "+" button like Accessibility has.
-    Uses sounddevice to briefly open the mic, which triggers the OS prompt.
+    access. Uses sounddevice to briefly open the mic, which triggers the OS prompt.
     """
     if not IS_MAC:
         return
@@ -174,7 +163,6 @@ def request_microphone() -> None:
 
         def _trigger_mic_prompt():
             try:
-                # Opening an input stream triggers the native macOS mic permission prompt
                 stream = sd.InputStream(samplerate=16000, channels=1, blocksize=1024)
                 stream.start()
                 import time
@@ -184,11 +172,9 @@ def request_microphone() -> None:
             except Exception:
                 logger.debug("sounddevice mic prompt trigger failed", exc_info=True)
 
-        # Run in thread to avoid blocking the UI
         threading.Thread(target=_trigger_mic_prompt, daemon=True).start()
     except Exception:
         logger.debug("Could not request microphone access", exc_info=True)
-        # Fallback: open System Settings
         try:
             subprocess.Popen([
                 "open",

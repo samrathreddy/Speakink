@@ -8,7 +8,7 @@ import platform
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 
 from speakink.core.permissions import (
     check_accessibility, check_input_monitoring, check_microphone,
@@ -81,19 +81,6 @@ QPushButton#continueBtn:hover {
 QPushButton#continueBtn:disabled {
     background-color: #45475a;
     color: #6c7086;
-}
-QPushButton#refreshBtn {
-    background-color: transparent;
-    color: #89b4fa;
-    border: 1px solid #89b4fa;
-    border-radius: 8px;
-    padding: 10px 24px;
-    font-size: 14px;
-    font-weight: 600;
-}
-QPushButton#refreshBtn:hover {
-    background-color: #89b4fa;
-    color: #1e1e2e;
 }
 """
 
@@ -223,6 +210,7 @@ class PermissionsDialog(QDialog):
             description="Insert text at your cursor position.",
             check_fn=check_accessibility,
             request_fn=request_accessibility,
+            button_text="Grant Access",
         )
         layout.addWidget(self._access_row)
 
@@ -239,8 +227,8 @@ class PermissionsDialog(QDialog):
         layout.addSpacing(8)
 
         note = QLabel(
-            "Add SpeakInk in Accessibility and Input Monitoring, "
-            "then restart the app. If already listed, remove and re-add it."
+            "Permissions update automatically. "
+            "After granting access, you may need to restart the app."
         )
         note.setObjectName("subtitle")
         note.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -249,31 +237,36 @@ class PermissionsDialog(QDialog):
 
         layout.addStretch()
 
-        # Bottom buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(12)
-
-        refresh_btn = QPushButton("Refresh")
-        refresh_btn.setObjectName("refreshBtn")
-        refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        refresh_btn.clicked.connect(self._refresh_all)
-        btn_layout.addWidget(refresh_btn)
-
+        # Continue button
         self._continue_btn = QPushButton("Continue")
         self._continue_btn.setObjectName("continueBtn")
         self._continue_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._continue_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(self._continue_btn)
-
-        layout.addLayout(btn_layout)
+        layout.addWidget(self._continue_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._update_continue_btn()
 
-    def _refresh_all(self) -> None:
+        # Auto-poll permissions every 2 seconds
+        self._poll_timer = QTimer(self)
+        self._poll_timer.timeout.connect(self._poll_permissions)
+        self._poll_timer.start(2000)
+
+    def _poll_permissions(self) -> None:
+        """Periodically re-check permissions and update the UI live."""
         self._mic_row.refresh()
         self._access_row.refresh()
         self._input_row.refresh()
         self._update_continue_btn()
+
+        # Auto-continue when all permissions are granted
+        if self._mic_row.granted and self._access_row.granted and self._input_row.granted:
+            self._poll_timer.stop()
+            self.accept()
+
+    def accept(self) -> None:
+        """Stop polling before closing the dialog."""
+        self._poll_timer.stop()
+        super().accept()
 
     def _update_continue_btn(self) -> None:
         all_granted = (
