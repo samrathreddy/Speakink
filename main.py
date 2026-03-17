@@ -19,6 +19,7 @@ from speakink.ui.overlay import RecordingOverlay
 from speakink.ui.notifications import NotificationManager
 from speakink.ui.settings_window import SettingsWindow
 from speakink.ui.history_window import HistoryWindow
+from speakink.ui.permissions_dialog import PermissionsDialog
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -42,6 +43,10 @@ class SpeakInkApp:
         self._app = QApplication(sys.argv)
         self._app.setApplicationName("SpeakInk")
         self._app.setQuitOnLastWindowClosed(False)
+
+        # Check macOS permissions before anything else
+        if not PermissionsDialog.check_and_show():
+            sys.exit(0)
 
         self._config = ConfigManager()
         self._event_bus = EventBus()

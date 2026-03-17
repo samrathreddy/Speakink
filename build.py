@@ -13,6 +13,7 @@ import platform
 import shutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# PROJECT_ROOT is the parent of SCRIPT_DIR so that `speakink` is a package on the path
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
@@ -128,6 +129,10 @@ def build():
         "--paths", PROJECT_ROOT,
     ]
 
+    # Collect the entire speakink package (fixes "No module named speakink.core")
+    cmd.extend(["--collect-submodules", "speakink"])
+    cmd.extend(["--collect-data", "speakink"])
+
     # Hidden imports
     for imp in HIDDEN_IMPORTS:
         cmd.extend(["--hidden-import", imp])
@@ -137,11 +142,17 @@ def build():
         if os.path.exists(src):
             cmd.extend(["--add-data", f"{src}{os.pathsep}{dest}"])
 
-    # Platform-specific options
+    # Platform-specific options & icon
     if IS_MAC:
-        cmd.extend([
-            "--osx-bundle-identifier", "com.speakink.app",
-        ])
+        icon_path = os.path.join(SCRIPT_DIR, "ui", "assets", "icon.icns")
+        mac_args = ["--osx-bundle-identifier", "com.speakink.app"]
+        if os.path.exists(icon_path):
+            mac_args.extend(["--icon", icon_path])
+        cmd.extend(mac_args)
+    elif IS_WINDOWS:
+        icon_path = os.path.join(SCRIPT_DIR, "ui", "assets", "icon.ico")
+        if os.path.exists(icon_path):
+            cmd.extend(["--icon", icon_path])
 
     # Entry point
     cmd.append(ENTRY_POINT)

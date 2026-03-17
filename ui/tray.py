@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _create_icon(color: str, badge: str = "") -> QIcon:
-    """Create a simple colored mic icon programmatically."""
+    """Create a waveform-style tray icon matching the app icon."""
     pixmap = QPixmap(32, 32)
     pixmap.fill(QColor(0, 0, 0, 0))
 
@@ -31,17 +31,24 @@ def _create_icon(color: str, badge: str = "") -> QIcon:
         "error": QColor(220, 50, 50),
     }
     c = colors.get(color, QColor(150, 150, 150))
-
-    # Mic body
-    painter.setBrush(c)
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawRoundedRect(10, 2, 12, 18, 5, 5)
 
-    # Mic stand
-    painter.setPen(c)
-    painter.drawArc(7, 10, 18, 14, 0, -180 * 16)
-    painter.drawLine(16, 24, 16, 29)
-    painter.drawLine(10, 29, 22, 29)
+    # Waveform bars — 5 bars centered in 32x32
+    # Heights represent a voice waveform pattern
+    bar_w = 3
+    gap = 3
+    heights = [10, 18, 26, 20, 12]
+    opacities = [0.5, 0.7, 1.0, 0.8, 0.55]
+    total_w = len(heights) * bar_w + (len(heights) - 1) * gap
+    start_x = (32 - total_w) // 2
+
+    for i, (h, opacity) in enumerate(zip(heights, opacities)):
+        bar_c = QColor(c)
+        bar_c.setAlphaF(opacity)
+        painter.setBrush(bar_c)
+        x = start_x + i * (bar_w + gap)
+        y = (32 - h) // 2
+        painter.drawRoundedRect(x, y, bar_w, h, 1, 1)
 
     # Badge
     if badge == "!":
