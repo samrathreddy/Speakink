@@ -14,10 +14,26 @@ IS_MAC = platform.system() == "Darwin"
 
 
 def check_accessibility() -> bool:
-    """Check if the app can monitor keyboard input.
+    """Check if the app has Accessibility permission via AXIsProcessTrusted."""
+    if not IS_MAC:
+        return True
+    try:
+        hi = ctypes.CDLL(
+            "/System/Library/Frameworks/ApplicationServices.framework"
+            "/Frameworks/HIServices.framework/HIServices"
+        )
+        hi.AXIsProcessTrusted.restype = ctypes.c_bool
+        return hi.AXIsProcessTrusted()
+    except Exception:
+        logger.debug("AXIsProcessTrusted check failed", exc_info=True)
+        return True
 
-    Uses CGEventTapCreate as a practical test — more reliable than AXIsProcessTrusted
-    for PyInstaller ad-hoc signed apps where the TCC code signature changes every build.
+
+def check_input_monitoring() -> bool:
+    """Check if the app has Input Monitoring permission.
+
+    Uses CGEventTapCreate as a practical test — if we can create an event tap
+    that listens for key events, Input Monitoring is granted.
     """
     if not IS_MAC:
         return True
@@ -26,29 +42,20 @@ def check_accessibility() -> bool:
             "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
         )
 
-        # CGEventTapCreate requires a real callback — NULL always returns NULL
         CGEVENT_CALLBACK = ctypes.CFUNCTYPE(
-            ctypes.c_void_p,   # return: CGEventRef
-            ctypes.c_void_p,   # proxy
-            ctypes.c_uint32,   # event type
-            ctypes.c_void_p,   # event
-            ctypes.c_void_p,   # user info
+            ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32,
+            ctypes.c_void_p, ctypes.c_void_p,
         )
 
         def _passthrough(proxy, event_type, event, user_info):
             return event
 
-        # Must keep a reference so it doesn't get garbage collected
         callback = CGEVENT_CALLBACK(_passthrough)
 
         cg.CGEventTapCreate.restype = ctypes.c_void_p
         cg.CGEventTapCreate.argtypes = [
-            ctypes.c_uint32,   # tap location
-            ctypes.c_uint32,   # place
-            ctypes.c_uint32,   # options
-            ctypes.c_uint64,   # events of interest
-            ctypes.c_void_p,   # callback
-            ctypes.c_void_p,   # user info
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_uint64, ctypes.c_void_p, ctypes.c_void_p,
         ]
 
         kCGSessionEventTap = 1
@@ -57,18 +64,14 @@ def check_accessibility() -> bool:
         kCGEventKeyDown = 1 << 10
 
         tap = cg.CGEventTapCreate(
-            kCGSessionEventTap,
-            kCGHeadInsertEventTap,
-            kCGEventTapOptionListenOnly,
-            kCGEventKeyDown,
-            callback,
-            None,
+            kCGSessionEventTap, kCGHeadInsertEventTap,
+            kCGEventTapOptionListenOnly, kCGEventKeyDown,
+            callback, None,
         )
 
         if tap is None or tap == 0:
             return False
 
-        # Clean up
         cf = ctypes.CDLL(
             "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
         )

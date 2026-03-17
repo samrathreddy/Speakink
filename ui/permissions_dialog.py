@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from speakink.core.permissions import (
-    check_accessibility, check_microphone,
+    check_accessibility, check_input_monitoring, check_microphone,
     request_accessibility, request_input_monitoring, request_microphone,
 )
 
@@ -98,12 +98,6 @@ QPushButton#refreshBtn:hover {
 """
 
 
-def _open_both_accessibility_settings():
-    """Open both Accessibility and Input Monitoring panes."""
-    request_accessibility()
-    request_input_monitoring()
-
-
 class PermissionRow(QWidget):
     """A single permission check row with status and open-settings button."""
 
@@ -185,7 +179,7 @@ class PermissionsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("SpeakInk — Permissions")
-        self.setFixedSize(520, 420)
+        self.setFixedSize(520, 500)
         self.setStyleSheet(DIALOG_STYLE)
         self.setWindowFlags(
             Qt.WindowType.Window
@@ -225,17 +219,27 @@ class PermissionsDialog(QDialog):
         layout.addSpacing(8)
 
         self._access_row = PermissionRow(
-            name="Accessibility & Input Monitoring",
-            description="Listen for global hotkeys and insert text at your cursor.",
+            name="Accessibility",
+            description="Insert text at your cursor position.",
             check_fn=check_accessibility,
-            request_fn=_open_both_accessibility_settings,
+            request_fn=request_accessibility,
         )
         layout.addWidget(self._access_row)
 
         layout.addSpacing(8)
 
+        self._input_row = PermissionRow(
+            name="Input Monitoring",
+            description="Listen for global hotkey to start/stop dictation.",
+            check_fn=check_input_monitoring,
+            request_fn=request_input_monitoring,
+        )
+        layout.addWidget(self._input_row)
+
+        layout.addSpacing(8)
+
         note = QLabel(
-            "Add SpeakInk in both Accessibility and Input Monitoring, "
+            "Add SpeakInk in Accessibility and Input Monitoring, "
             "then restart the app. If already listed, remove and re-add it."
         )
         note.setObjectName("subtitle")
@@ -268,10 +272,15 @@ class PermissionsDialog(QDialog):
     def _refresh_all(self) -> None:
         self._mic_row.refresh()
         self._access_row.refresh()
+        self._input_row.refresh()
         self._update_continue_btn()
 
     def _update_continue_btn(self) -> None:
-        all_granted = self._mic_row.granted and self._access_row.granted
+        all_granted = (
+            self._mic_row.granted
+            and self._access_row.granted
+            and self._input_row.granted
+        )
         if all_granted:
             self._continue_btn.setText("Continue")
         else:
@@ -288,13 +297,15 @@ class PermissionsDialog(QDialog):
 
         mic_ok = check_microphone()
         access_ok = check_accessibility()
+        input_ok = check_input_monitoring()
 
-        if mic_ok and access_ok:
+        if mic_ok and access_ok and input_ok:
             logger.info("All permissions granted")
             return True
 
         logger.info(
-            "Missing permissions — mic=%s, accessibility=%s", mic_ok, access_ok
+            "Missing permissions — mic=%s, accessibility=%s, input_monitoring=%s",
+            mic_ok, access_ok, input_ok,
         )
         dialog = PermissionsDialog(parent)
         result = dialog.exec()
