@@ -31,6 +31,10 @@ jobs:
         working-directory: speakink
         run: venv/bin/python build.py
 
+      - name: Ad-hoc code sign
+        working-directory: speakink
+        run: codesign --force --deep --sign - dist/SpeakInk.app
+
       - name: Create DMG
         working-directory: speakink
         run: |

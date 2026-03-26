@@ -91,6 +91,7 @@ class SystemTray(QSystemTrayIcon):
         self.on_toggle_dictation = None
         self.on_open_settings = None
         self.on_open_history = None
+        self.on_open_permissions = None
         self.on_quit = None
 
         self._last_transcription = ""
@@ -121,6 +122,10 @@ class SystemTray(QSystemTrayIcon):
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(lambda: self.on_open_settings and self.on_open_settings())
         menu.addAction(settings_action)
+
+        permissions_action = QAction("Permissions...", self)
+        permissions_action.triggered.connect(lambda: self.on_open_permissions and self.on_open_permissions())
+        menu.addAction(permissions_action)
 
         menu.addSeparator()
 

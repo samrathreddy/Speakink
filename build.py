@@ -13,6 +13,9 @@ import platform
 import shutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IS_WINDOWS = platform.system() == "Windows"
+IS_MAC = platform.system() == "Darwin"
+
 # PROJECT_ROOT is the parent of SCRIPT_DIR so that `import speakink` works.
 # On CI the checkout dir may be "Speakink" (capital S) which breaks the import.
 # We ensure a lowercase `speakink` directory exists on the Python path.
@@ -22,14 +25,11 @@ if _dir_name != "speakink":
     _lowercase_link = os.path.join(PROJECT_ROOT, "speakink")
     if not os.path.exists(_lowercase_link):
         if IS_WINDOWS:
-            # Windows: use junction (no admin needed, works for dirs)
             subprocess.run(["cmd", "/c", "mklink", "/J", _lowercase_link, SCRIPT_DIR],
                            capture_output=True)
         else:
             os.symlink(SCRIPT_DIR, _lowercase_link)
         print(f"  Created link: {_lowercase_link} -> {SCRIPT_DIR}")
-IS_WINDOWS = platform.system() == "Windows"
-IS_MAC = platform.system() == "Darwin"
 
 VENV_DIR = os.path.join(SCRIPT_DIR, "venv")
 if IS_WINDOWS:
@@ -180,13 +180,23 @@ def build():
         print("ERROR: Build failed. Check output above.")
         sys.exit(1)
 
-    # Step 3: Report
+    # Step 3: Patch Info.plist (macOS) and report
     print()
-    print("[3/3] Build complete!")
-    print()
+    print("[3/4] Post-processing...")
 
     if IS_MAC:
         app_path = os.path.join(dist_dir, f"{APP_NAME}.app")
+        _patch_info_plist(app_path)
+
+    # Step 4: Code sign (macOS)
+    if IS_MAC:
+        print()
+        print("[4/4] Code signing...")
+        _codesign_app(app_path)
+
+    print()
+
+    if IS_MAC:
         if os.path.exists(app_path):
             size_mb = _dir_size_mb(app_path)
             print(f"  Output: {app_path}")
@@ -209,6 +219,55 @@ def build():
 
     print()
     print("=========================================")
+
+
+def _patch_info_plist(app_path):
+    """Add required macOS permission descriptions to Info.plist.
+
+    Without NSMicrophoneUsageDescription, macOS silently denies mic access
+    in bundled apps — the native prompt never appears.
+    """
+    import plistlib
+
+    plist_path = os.path.join(app_path, "Contents", "Info.plist")
+    if not os.path.exists(plist_path):
+        print("  WARNING: Info.plist not found, skipping patch")
+        return
+
+    with open(plist_path, "rb") as f:
+        plist = plistlib.load(f)
+
+    plist["NSMicrophoneUsageDescription"] = (
+        "SpeakInk needs microphone access to transcribe your speech."
+    )
+    plist["NSAccessibilityUsageDescription"] = (
+        "SpeakInk needs accessibility access to insert text at your cursor."
+    )
+
+    with open(plist_path, "wb") as f:
+        plistlib.dump(plist, f)
+
+    print("  Patched Info.plist with permission descriptions")
+
+
+def _codesign_app(app_path):
+    """Ad-hoc code sign the .app bundle.
+
+    Without signing, macOS TCC silently blocks permission prompts (e.g. microphone).
+    Ad-hoc signing (--sign -) is free and sufficient for local use and CI builds.
+    """
+    if not os.path.exists(app_path):
+        print("  WARNING: .app not found, skipping code sign")
+        return
+
+    result = subprocess.run(
+        ["codesign", "--force", "--deep", "--sign", "-", app_path],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        print(f"  Ad-hoc signed {os.path.basename(app_path)}")
+    else:
+        print(f"  WARNING: Code signing failed: {result.stderr.strip()}")
 
 
 def _dir_size_mb(path):

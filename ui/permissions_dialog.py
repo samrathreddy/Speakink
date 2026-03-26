@@ -237,14 +237,15 @@ class PermissionsDialog(QDialog):
 
         layout.addStretch()
 
-        # Continue button
-        self._continue_btn = QPushButton("Continue")
-        self._continue_btn.setObjectName("continueBtn")
-        self._continue_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._continue_btn.clicked.connect(self.accept)
-        layout.addWidget(self._continue_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Start button — only enabled when all permissions are granted
+        self._start_btn = QPushButton("Start")
+        self._start_btn.setObjectName("continueBtn")
+        self._start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._start_btn.setEnabled(False)
+        self._start_btn.clicked.connect(self._restart_app)
+        layout.addWidget(self._start_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self._update_continue_btn()
+        self._update_start_btn()
 
         # Auto-poll permissions every 2 seconds
         self._poll_timer = QTimer(self)
@@ -256,28 +257,27 @@ class PermissionsDialog(QDialog):
         self._mic_row.refresh()
         self._access_row.refresh()
         self._input_row.refresh()
-        self._update_continue_btn()
+        self._update_start_btn()
 
-        # Auto-continue when all permissions are granted
-        if self._mic_row.granted and self._access_row.granted and self._input_row.granted:
-            self._poll_timer.stop()
-            self.accept()
+    def _restart_app(self) -> None:
+        """Restart the app so permissions take effect cleanly."""
+        self._poll_timer.stop()
+        import os
+        import sys
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def accept(self) -> None:
         """Stop polling before closing the dialog."""
         self._poll_timer.stop()
         super().accept()
 
-    def _update_continue_btn(self) -> None:
+    def _update_start_btn(self) -> None:
         all_granted = (
             self._mic_row.granted
             and self._access_row.granted
             and self._input_row.granted
         )
-        if all_granted:
-            self._continue_btn.setText("Continue")
-        else:
-            self._continue_btn.setText("Continue Anyway")
+        self._start_btn.setEnabled(all_granted)
 
     @staticmethod
     def check_and_show(parent=None) -> bool:
@@ -301,5 +301,6 @@ class PermissionsDialog(QDialog):
             mic_ok, access_ok, input_ok,
         )
         dialog = PermissionsDialog(parent)
-        result = dialog.exec()
-        return result == QDialog.DialogCode.Accepted
+        dialog.exec()
+        # Dialog can only be dismissed by closing — app won't proceed without permissions
+        return False

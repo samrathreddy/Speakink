@@ -86,6 +86,7 @@ class SpeakInkApp:
         self._tray.on_toggle_dictation = self._toggle_dictation
         self._tray.on_open_settings = self._open_settings
         self._tray.on_open_history = self._open_history
+        self._tray.on_open_permissions = self._open_permissions
         self._tray.on_quit = self._quit
 
         # Subscribe to events — emit via bridge for thread safety
@@ -161,6 +162,10 @@ class SpeakInkApp:
         self._settings_window.show()
         self._settings_window.raise_()
         self._settings_window.activateWindow()
+
+    def _open_permissions(self) -> None:
+        dialog = PermissionsDialog()
+        dialog.exec()
 
     def _open_history(self) -> None:
         if self._history_window is None or not self._history_window.isVisible():
