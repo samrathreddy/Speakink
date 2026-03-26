@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 from typing import Optional
 
 from PyQt6.QtWidgets import QApplication
@@ -174,9 +175,20 @@ class SpeakInkApp:
         self._history_window.raise_()
         self._history_window.activateWindow()
 
+    def _warmup_stt(self) -> None:
+        """Pre-connect the STT provider in a background thread at startup."""
+        def _connect():
+            try:
+                self._stt.start_session()
+                logger.info("STT provider warmed up: %s", self._stt.name)
+            except Exception:
+                logger.debug("STT warmup failed (will retry on first use)", exc_info=True)
+        threading.Thread(target=_connect, daemon=True, name="stt-warmup").start()
+
     def _on_settings_changed(self) -> None:
         new_stt = self._create_stt_provider()
         self._controller.update_stt_provider(new_stt)
+        self._warmup_stt()
         new_correction = self._create_correction_provider()
         self._controller.update_correction_provider(new_correction)
         new_insertion = self._create_insertion_method()
@@ -225,6 +237,8 @@ class SpeakInkApp:
     def run(self) -> int:
         self._tray.show()
         self._controller.start()
+
+        QTimer.singleShot(500, self._warmup_stt)
 
         hotkey = self._config.get("hotkey", "shift")
         QTimer.singleShot(

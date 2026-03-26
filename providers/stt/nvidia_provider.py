@@ -6,6 +6,7 @@ import io
 import logging
 import wave
 from typing import Optional
+import riva.client
 
 import numpy as np
 
@@ -52,8 +53,6 @@ class NvidiaProvider(STTProvider):
         if self._asr is not None and self._current_function_id == function_id:
             return
 
-        import riva.client
-
         self._auth = riva.client.Auth(
             uri=GRPC_URI,
             use_ssl=True,
@@ -66,6 +65,36 @@ class NvidiaProvider(STTProvider):
         self._current_function_id = function_id
         logger.info("NVIDIA Riva client connected (model: %s, function_id: %s)", self._model, function_id)
 
+    def start_session(self) -> None:
+        """Warm up gRPC connection by sending a silent dummy request.
+
+        gRPC channels are lazy — the real TLS handshake + HTTP/2 connection only
+        happens on the first actual RPC call. Sending silent audio here forces that
+        so the first real transcription is fast.
+        """
+        self._ensure_client()
+        try:
+            silent_audio = np.zeros(8000, dtype=np.int16)  # 0.5s of silence
+            buf = io.BytesIO()
+            with wave.open(buf, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(SAMPLE_RATE)
+                wf.writeframes(silent_audio.tobytes())
+            model_info = NVIDIA_MODELS.get(self._model, NVIDIA_MODELS["parakeet-tdt-0.6b-v2"])
+            config = riva.client.RecognitionConfig(
+                language_code=model_info["language"],
+                max_alternatives=1,
+                enable_automatic_punctuation=False,
+                audio_channel_count=1,
+                sample_rate_hertz=SAMPLE_RATE,
+                encoding=riva.client.AudioEncoding.LINEAR_PCM,
+            )
+            self._asr.offline_recognize(buf.getvalue(), config)
+            logger.info("NVIDIA gRPC connection warmed up")
+        except Exception:
+            logger.debug("NVIDIA warmup ping failed (will retry on first use)", exc_info=True)
+
     def transcribe(self, audio: np.ndarray, language: Optional[str] = None) -> TranscriptionResult:
         self._ensure_client()
 
@@ -77,10 +106,9 @@ class NvidiaProvider(STTProvider):
             wf.writeframes(audio.astype(np.int16).tobytes())
         audio_bytes = buf.getvalue()
 
-        import riva.client
-
         model_info = NVIDIA_MODELS.get(self._model, NVIDIA_MODELS["parakeet-tdt-0.6b-v2"])
         lang_code = language or model_info["language"]
+
         if lang_code and len(lang_code) == 2:
             lang_code = f"{lang_code}-US" if lang_code == "en" else lang_code
 
