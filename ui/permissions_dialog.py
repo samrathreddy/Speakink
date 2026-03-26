@@ -260,11 +260,18 @@ class PermissionsDialog(QDialog):
         self._update_start_btn()
 
     def _restart_app(self) -> None:
-        """Restart the app so permissions take effect cleanly."""
+        """Restart the app so permissions take effect cleanly.
+
+        Uses subprocess + QApplication.quit() instead of os.execv so Qt shuts
+        down properly and releases the macOS tray icon before the new process starts.
+        """
         self._poll_timer.stop()
-        import os
+        self.hide()
         import sys
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        import subprocess
+        from PyQt6.QtWidgets import QApplication
+        subprocess.Popen([sys.executable] + sys.argv)
+        QApplication.instance().quit()
 
     def accept(self) -> None:
         """Stop polling before closing the dialog."""

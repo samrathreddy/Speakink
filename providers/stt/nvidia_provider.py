@@ -44,6 +44,7 @@ class NvidiaProvider(STTProvider):
         self._auth = None
         self._asr = None
         self._current_function_id = None
+        self._warmed_up = False
 
     def _ensure_client(self) -> None:
         model_info = NVIDIA_MODELS.get(self._model, NVIDIA_MODELS["parakeet-tdt-0.6b-v2"])
@@ -73,6 +74,8 @@ class NvidiaProvider(STTProvider):
         so the first real transcription is fast.
         """
         self._ensure_client()
+        if self._warmed_up:
+            return
         try:
             silent_audio = np.zeros(8000, dtype=np.int16)  # 0.5s of silence
             buf = io.BytesIO()
@@ -91,6 +94,7 @@ class NvidiaProvider(STTProvider):
                 encoding=riva.client.AudioEncoding.LINEAR_PCM,
             )
             self._asr.offline_recognize(buf.getvalue(), config)
+            self._warmed_up = True
             logger.info("NVIDIA gRPC connection warmed up")
         except Exception:
             logger.debug("NVIDIA warmup ping failed (will retry on first use)", exc_info=True)
@@ -145,3 +149,4 @@ class NvidiaProvider(STTProvider):
         self._asr = None
         self._auth = None
         self._current_function_id = None
+        self._warmed_up = False
