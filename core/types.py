@@ -51,3 +51,4 @@ class HistoryEntry:
     provider: str
     timestamp: float = field(default_factory=time.time)
     duration_seconds: float = 0.0
+    model: str = ""

@@ -247,6 +247,7 @@ class AppController:
                 corrected_text=final_text if final_text != raw_text else None,
                 provider=self._stt.name,
                 duration_seconds=duration,
+                model=self._stt.model,
             )
             self._history.append(entry)
             self._save_history()

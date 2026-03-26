@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLineEdit
 
 from speakink.providers.registry import ProviderRegistry
@@ -24,8 +25,21 @@ def build_stt_tab(registry: ProviderRegistry) -> tuple[QWidget, dict]:
     prov_layout.setSpacing(8)
 
     fields["stt_combo"] = StyledComboBox()
+    COMING_SOON_STT = {"whisper_local"}
     for name, cls in registry.stt_providers.items():
-        fields["stt_combo"].addItem(cls.display_name, name)
+        label = cls.display_name
+        if name in COMING_SOON_STT:
+            label += "  — Coming Soon"
+        fields["stt_combo"].addItem(label, name)
+
+    # Grey out coming-soon providers
+    combo_model = fields["stt_combo"].model()
+    for i in range(fields["stt_combo"].count()):
+        if fields["stt_combo"].itemData(i) in COMING_SOON_STT:
+            item = combo_model.item(i)
+            item.setEnabled(False)
+            item.setForeground(QColor("#45475a"))
+
     prov_layout.addRow("Engine:", fields["stt_combo"])
     prov_layout.addRow("", hint_label("Local runs on your machine. Cloud providers need an API key"))
 

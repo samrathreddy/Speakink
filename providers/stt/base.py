@@ -46,6 +46,14 @@ class STTProvider(ABC):
     display_name: str = ""
     provider_type: ProviderType = ProviderType.LOCAL
 
+    @property
+    def model(self) -> str:
+        """Return the active model name. Checks _model (str) then _model_size."""
+        m = getattr(self, '_model', None)
+        if isinstance(m, str):
+            return m
+        return getattr(self, '_model_size', '') or ''
+
     @abstractmethod
     def transcribe(self, audio: np.ndarray, language: Optional[str] = None) -> TranscriptionResult:
         """Transcribe a complete audio buffer."""

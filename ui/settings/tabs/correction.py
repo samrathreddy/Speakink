@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLineEdit
 
 from speakink.providers.registry import ProviderRegistry
@@ -36,9 +37,22 @@ def build_correction_tab(registry: ProviderRegistry) -> tuple[QWidget, dict]:
     cp_layout = QFormLayout(fields["correction_settings_group"])
     cp_layout.setSpacing(8)
 
+    COMING_SOON_CORRECTION = {"ollama"}
     fields["correction_combo"] = StyledComboBox()
     for name, cls in registry.correction_providers.items():
-        fields["correction_combo"].addItem(cls.display_name, name)
+        label = cls.display_name
+        if name in COMING_SOON_CORRECTION:
+            label += "  — Coming Soon"
+        fields["correction_combo"].addItem(label, name)
+
+    # Grey out coming-soon providers
+    correction_model = fields["correction_combo"].model()
+    for i in range(fields["correction_combo"].count()):
+        if fields["correction_combo"].itemData(i) in COMING_SOON_CORRECTION:
+            item = correction_model.item(i)
+            item.setEnabled(False)
+            item.setForeground(QColor("#45475a"))
+
     cp_layout.addRow("Provider:", fields["correction_combo"])
 
     layout.addWidget(fields["correction_settings_group"])
