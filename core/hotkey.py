@@ -74,10 +74,12 @@ class HotkeyManager:
             self._listener = None
 
     def _normalize_key(self, key) -> keyboard.Key | keyboard.KeyCode:
-        """Normalize key variants (e.g., ctrl_l/ctrl_r -> ctrl)."""
+        """Normalize key variants (e.g., ctrl_l/ctrl_r -> ctrl).
+        If the specific variant (e.g. alt_r) is in the hotkey set, keep it as-is."""
+        if key in self._hotkey_keys:
+            return key
         if hasattr(key, "name"):
             name = key.name
-            # Map left/right variants to generic key
             if name.endswith("_l") or name.endswith("_r"):
                 base_name = name[:-2]
                 try:

@@ -43,6 +43,7 @@ class AppController:
         self._insertion = insertion_method
         self._correction = correction_provider
         self._state = AppState.IDLE
+        self._start_lock = threading.Lock()
         self._history: list[HistoryEntry] = []
         self._partial_texts: list[str] = []
         self._recording_start_time: float = 0.0
@@ -98,10 +99,20 @@ class AppController:
         self._event_bus.emit(EventType.STATE_CHANGED, old_state=old, new_state=state)
 
     def _on_hotkey_activate(self) -> None:
-        if self._state == AppState.IDLE:
-            # Run in background so pynput listener thread stays responsive
-            # (otherwise key release events queue up during start_session)
-            threading.Thread(target=self._start_recording, daemon=True).start()
+        if self._state != AppState.IDLE:
+            return
+        # Non-blocking acquire prevents multiple simultaneous hotkey fires
+        # from spawning duplicate recording threads (race between state check
+        # and _start_recording setting state to RECORDING)
+        if not self._start_lock.acquire(blocking=False):
+            return
+        threading.Thread(target=self._start_recording_locked, daemon=True).start()
+
+    def _start_recording_locked(self) -> None:
+        try:
+            self._start_recording()
+        finally:
+            self._start_lock.release()
 
     def _on_hotkey_deactivate(self) -> None:
         if self._state == AppState.RECORDING:
