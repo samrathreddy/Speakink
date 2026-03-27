@@ -11,7 +11,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG = {
-    "hotkey": "shift",
+    "hotkey": "right_alt",
     "hotkey_mode": "push_to_talk",
     "stt_provider": "nvidia",
     "whisper_model": "distil-large-v3",

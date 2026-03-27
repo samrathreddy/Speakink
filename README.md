@@ -21,7 +21,7 @@ Free with NVIDIA Parakeet. No subscriptions. No vendor lock-in.
 
 ## Demo
 
-> Hold **Shift** → speak → release → text appears at your cursor. Works in any app.
+> Hold **Right Option (⌥)** → speak → release → text appears at your cursor. Works in any app.
 
 ---
 
@@ -78,7 +78,7 @@ That's it. Setup creates the venv, installs deps, and launches the app. Run `pyt
 
 | Action | Default |
 |--------|---------|
-| **Dictate** | Hold `Shift`, speak, release |
+| **Dictate** | Hold `Right Option (⌥)` on Mac / `Right Alt` on Windows, speak, release |
 | **Settings** | Right-click tray icon |
 | **Quit** | Right-click tray icon → Quit |
 
@@ -146,7 +146,7 @@ All settings apply instantly — no restart needed.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| Shortcut | `Shift` | Customizable in Settings |
+| Shortcut | `Right Option (⌥)` on Mac / `Right Alt` on Windows | Customizable in Settings |
 | Mode | Push-to-talk | Hold to record, release to stop |
 
 Also supports **toggle mode** (press once to start, again to stop).

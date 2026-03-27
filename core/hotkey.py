@@ -18,6 +18,7 @@ KEY_MAP = {
     "ctrl": keyboard.Key.ctrl,
     "shift": keyboard.Key.shift,
     "alt": keyboard.Key.alt,
+    "right_alt": keyboard.Key.alt_r,
     "cmd": keyboard.Key.cmd if platform.system() == "Darwin" else keyboard.Key.ctrl,
     "space": keyboard.Key.space,
     "tab": keyboard.Key.tab,

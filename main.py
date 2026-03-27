@@ -196,7 +196,7 @@ class SpeakInkApp:
         self._notifications.set_enabled(self._config.get("show_notifications", True))
 
         # Dynamically update hotkey and mode without restart
-        self._controller._hotkey.update_hotkey(self._config.get("hotkey", "shift"))
+        self._controller._hotkey.update_hotkey(self._config.get("hotkey", "right_alt"))
         self._controller._hotkey.update_mode(
             HotkeyMode(self._config.get("hotkey_mode", "push_to_talk"))
         )
@@ -240,12 +240,13 @@ class SpeakInkApp:
 
         QTimer.singleShot(500, self._warmup_stt)
 
-        hotkey = self._config.get("hotkey", "shift")
+        hotkey = self._config.get("hotkey", "right_alt")
+        hotkey_display = "Right Option (⌥)" if hotkey == "right_alt" and sys.platform == "darwin" else hotkey
         QTimer.singleShot(
             1000,
             lambda: self._notifications.notify(
                 "SpeakInk is running",
-                f"Press {hotkey} to dictate.",
+                f"Press {hotkey_display} to dictate.",
             ),
         )
 

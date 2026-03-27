@@ -64,7 +64,7 @@ class AppController:
         # Hotkey
         mode = HotkeyMode(config.get("hotkey_mode", "push_to_talk"))
         self._hotkey = HotkeyManager(
-            hotkey_str=config.get("hotkey", "shift"),
+            hotkey_str=config.get("hotkey", "right_alt"),
             mode=mode,
             on_activate=self._on_hotkey_activate,
             on_deactivate=self._on_hotkey_deactivate,

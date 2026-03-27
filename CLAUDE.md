@@ -103,7 +103,7 @@ After modifying provider code:
 1. Kill the running app: `pkill -f speakink`
 2. Restart: `PYTHONPATH="." venv/bin/python main.py > /tmp/speakink.log 2>&1 &`
 3. Check logs: `cat /tmp/speakink.log` or `grep -E "(error|Error|Traceback)" /tmp/speakink.log`
-4. Test with configured hotkey (default: `Shift` in push-to-talk mode)
+4. Test with configured hotkey (default: `right_alt` = Right Option ⌥ on Mac / Right Alt on Windows, in push-to-talk mode)
 
 ## Code Style
 

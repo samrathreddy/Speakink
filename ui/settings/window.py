@@ -165,7 +165,7 @@ class SettingsWindow(QWidget):
         c = self._config
         g, s, cr, a = self._general, self._stt, self._correction, self._audio
 
-        g["hotkey_edit"].setText(c.get("hotkey", "shift"))
+        g["hotkey_edit"].setText(c.get("hotkey", "right_alt"))
         _set_combo_text(g["hotkey_mode"], c.get("hotkey_mode", "push_to_talk"))
         _set_combo_data(g["insertion_combo"], c.get("insertion_method", "clipboard"))
         g["auto_start"].setChecked(c.get("auto_start", False))

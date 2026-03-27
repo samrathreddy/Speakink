@@ -21,7 +21,7 @@ _IS_MAC = platform.system() == "Darwin"
 _QT_KEY_NAMES = {
     Qt.Key.Key_Control: "cmd" if _IS_MAC else "ctrl",
     Qt.Key.Key_Shift: "shift",
-    Qt.Key.Key_Alt: "alt",
+    Qt.Key.Key_Alt: "right_alt",
     Qt.Key.Key_Meta: "ctrl" if _IS_MAC else "cmd",
     Qt.Key.Key_Space: "space",
     Qt.Key.Key_Return: "enter",
